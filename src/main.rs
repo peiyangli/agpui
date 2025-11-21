@@ -61,8 +61,7 @@ impl MainView {
 
 impl Render for MainView {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        let theme = cx.theme();
-
+        
         h_resizable("gallery-container")
             .child(
                 resizable_panel()
@@ -71,40 +70,7 @@ impl Render for MainView {
                     .child("GO")
                 )
             .child(
-                v_flex()
-                    .flex_1()
-                    .h_full()
-                    .overflow_x_hidden()
-                    .child(
-                        h_flex()
-                            .id("header")
-                            .p_4()
-                            .border_b_1()
-                            .border_color(theme.border)
-                            // .justify_between()
-                            // .items_start()
-                            .bg(theme.blue)
-                            .child("title"),
-                    )
-                    .child(
-                        v_resizable("history")
-                        .child(
-                            div()
-                            .size_full()
-                            .bg(theme.blue)
-                            .border_10()
-                            .border_color(theme.yellow)
-                            .flex()
-                            .child(self.history.clone())
-                            .into_any_element()
-                        )
-                        .child(resizable_panel()
-                            .size(px(255.))
-                            .size_range(px(100.)..px(500.))
-                            .child("Input(TODO)")
-                        )
-                    )
-                    .into_any_element(),
+                self.history.clone().into_any_element(),
             )
         // div().bg(theme.blue)
     }
