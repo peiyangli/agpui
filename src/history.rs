@@ -1,7 +1,8 @@
-use std::{array, path::Path};
+use std::{path::Path};
 
-use gpui::{Axis, Context, Edges, Entity, ImageSource, InteractiveElement as _, IntoElement, ParentElement as _, Pixels, Render, SharedString, Styled as _, Window, div, img, px};
-use gpui_component::{ActiveTheme as _, StyledExt as _, h_flex, resizable::{resizable_panel, v_resizable}, v_flex};
+use gpui::{AppContext, Axis, Context, Edges, Entity, ImageSource, InteractiveElement as _, IntoElement, ParentElement as _, Pixels, Render, SharedString, StatefulInteractiveElement, Styled as _, Window, div, img, px};
+use gpui_component::{ActiveTheme as _, IconName, Sizable, StyledExt as _, button::{Button, ButtonVariants}, h_flex, input::{Input, InputEvent, InputState}, resizable::{resizable_panel, v_resizable}, v_flex};
+use wry::cookie::time::format_description::modifier::Padding;
 
 
 
@@ -24,7 +25,8 @@ impl History {
 }
 
 pub struct HistoryView {
-    historys: Vec<History>
+    historys: Vec<History>,
+    input: Entity<InputState>
 }
 
 impl HistoryView {
@@ -33,8 +35,29 @@ impl HistoryView {
         cx: &mut Context<Self>,
     ) -> Self {
         let hs = (0..5000).map(|i| History::newWithI(i)).collect::<Vec<_>>();
+
+        let input = cx.new(|cx|
+            InputState::new(window, cx)
+                .placeholder("Enter your name...")
+                .multi_line()
+            );
+        let _ = cx.subscribe_in(&input, window, |view, state, event, window, cx| {
+            match event {
+                InputEvent::Change => {
+                    let text = state.read(cx).value();
+                    println!("Input changed: {}", text);
+                }
+                InputEvent::PressEnter { secondary } => {
+                    println!("Enter pressed, secondary: {}", secondary);
+                }
+                InputEvent::Focus => println!("Input focused"),
+                InputEvent::Blur => println!("Input blurred"),
+            }
+        });
+
         Self {
             historys: hs,
+            input: input,
         }
     }
 }
@@ -50,18 +73,25 @@ impl Render for HistoryView {
             .overflow_x_hidden()
             .child(
                 h_flex()
-                    .id("header")
-                    .p_4()
-                    .border_b_1()
-                    .border_color(theme.border)
-                    .bg(theme.blue)
-                    .child("title"),
+                .id("header")
+                .p_4()
+                .border_b_1()
+                .border_color(theme.border)
+                // .bg(theme.blue)
+                .child("title: hello for it"),
             )
             .child(
-                v_resizable("history")
+                div()
+                .id("history-view")
+                .flex_1()
+                .overflow_y_scroll()
+                .border_b_1()
+                .border_color(theme.border)
+                .child(
+                    v_resizable("history")
                     .child(
                         div()
-                        .size_full()
+                        .w_full()
                         .flex()
                         .child(
                             div()
@@ -98,8 +128,29 @@ impl Render for HistoryView {
                         resizable_panel()
                         .size(px(255.))
                         .size_range(px(100.)..px(500.))
-                        .child("Input(TODO)")
+                        .child(
+                            v_flex()
+                            .size_full()
+                            .child(
+                                "toolbox"
+                            )
+                            // .border_10()
+                            // .border_color(theme.border)
+                            .child(
+                                h_flex()
+                                .paddings(Edges{ top: px(10.), right: px(10.), bottom: px(10.), left: px(10.) })
+                                .flex_1()
+                                .child(
+                                    Input::new(&self.input)
+                                    // .bordered(false)
+                                    .size_full()
+                                    .border_color(theme.border)
+                                    // .suffix(Button::new("btn").icon(IconName::Info))
+                                ).child("Send")
+                            )
+                        )
                     )
+                )
             )
     }
 }
