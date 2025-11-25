@@ -20,7 +20,7 @@ impl History {
         Self { text: txt.into(), image: img.into(), height: ITEM_HEIGHT, hint: 0}
     }
     pub fn newWithI(i: i32)->Self{
-        Self { text: format!("Item {}", i).into(), image: Path::new(&format!("G:/research/rustee/agpui/src/assets/{}.png", i as usize%11)).into(), height: ITEM_HEIGHTS[i as usize%7], hint: i}
+        Self { text: format!("Item {}", i).into(), image: Path::new(&format!("G:/research/rustee/agpui/images/{}.png", i as usize%11)).into(), height: ITEM_HEIGHTS[i as usize%7], hint: i}
     }
 }
 
@@ -145,7 +145,7 @@ impl Render for HistoryView {
                                     // .bordered(false)
                                     .size_full()
                                     .border_color(theme.border)
-                                    // .suffix(Button::new("btn").icon(IconName::Info))
+                                    .suffix(Button::new("btn").icon(IconName::Info))
                                 ).child("Send")
                             )
                         )

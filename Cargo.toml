@@ -9,3 +9,5 @@ gpui = "0.2.2"
 gpui-component = { version = "0.4.0", features = ["webview"] }
 wry = { version = "0.53.3", package = "lb-wry" }
 gpui-component-assets = "0.4.0"
+fake = "4.4.0"
+rust-embed = "8.9.0"
