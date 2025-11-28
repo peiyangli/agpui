@@ -1,7 +1,7 @@
 use std::{path::Path};
 
 use gpui::{AppContext, Axis, Context, Edges, Entity, ImageSource, InteractiveElement as _, IntoElement, ParentElement as _, Pixels, Render, SharedString, StatefulInteractiveElement, Styled as _, Window, div, img, px};
-use gpui_component::{ActiveTheme as _, IconName, Sizable, StyledExt as _, button::{Button, ButtonVariants}, h_flex, input::{Input, InputEvent, InputState}, resizable::{resizable_panel, v_resizable}, v_flex};
+use gpui_component::{ActiveTheme as _, Icon, IconName, Sizable, StyledExt as _, accordion::Accordion, button::{Button, ButtonVariants}, h_flex, input::{Input, InputEvent, InputState}, resizable::{resizable_panel, v_resizable}, v_flex};
 use wry::cookie::time::format_description::modifier::Padding;
 
 

@@ -7,9 +7,11 @@ use gpui::{
 };
 
 use gpui_component::{
-    ActiveTheme, Icon, IconName, IndexPath, Root, Selectable, Sizable, StyledExt, TitleBar, WindowExt, avatar::Avatar, button::Button, checkbox::Checkbox, h_flex, label::Label, list::{List, ListDelegate, ListEvent, ListItem, ListState}, resizable::{h_resizable, resizable_panel}, v_flex
+    ActiveTheme, Icon, IconName, IndexPath, Root, Selectable, Sizable, StyledExt, TitleBar, WindowExt, accordion::Accordion, alert::Alert, avatar::{Avatar, AvatarGroup}, badge::Badge, button::Button, checkbox::Checkbox, h_flex, label::Label, list::{List, ListDelegate, ListEvent, ListItem, ListState}, resizable::{h_resizable, resizable_panel}, v_flex, webview
 };
 use gpui_component_assets::Assets;
+use gpui_component::webview::WebView;
+use gpui_component::wry;
 
 pub struct ChatContact {
     pub name: SharedString,
@@ -103,8 +105,8 @@ impl RenderOnce for ContactListItem {
             background = theme.list_even
         }
 
-        let mut img = Avatar::new();
-        if let Some(avatar) = &self.contact.avatar{
+        let mut img = Avatar::new().name(self.contact.name.clone());
+        if let Some(avatar) = &self.contact.avatar {
             img = img.src(avatar.clone())
         }
         self.base
@@ -348,6 +350,7 @@ impl Render for MainView {
 pub struct MainWindow{
     title_bar: Entity<AppTitleBar>,
     view: AnyView,
+    webview: Entity<WebView>,
 }
 
 impl MainWindow {
@@ -358,25 +361,97 @@ impl MainWindow {
     ) -> Self {
         let title_bar = cx.new(|cx| AppTitleBar::new(title, window, cx));
         let view = cx.new(|cx| MainView::new(window, cx));
+
+
+        let webview = cx.new(|cx| {
+            let builder = wry::WebViewBuilder::new()
+            .with_url("https://www.baidu.com");
+
+            #[cfg(any(target_os = "windows", target_os = "macos", target_os = "ios", target_os = "android"))]
+            let webview = {
+                use raw_window_handle::HasWindowHandle;
+                use wry::raw_window_handle;
+                let window_handle = window.window_handle().expect("No window handle");
+                builder.build_as_child(&window_handle).unwrap()
+            };
+
+            #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "ios", target_os = "android")))]
+            let webview = {
+                use gtk::prelude::*;
+                use wry::WebViewBuilderExtUnix;
+                let fixed = gtk::Fixed::builder().build();
+                fixed.show_all();
+                builder.build_gtk(&fixed).unwrap()
+            };
+
+            let view = WebView::new(webview, window, cx);
+            view.set_bounds(wry::Rect {
+                position: wry::dpi::LogicalPosition::new(0, 0).into(),
+                size: wry::dpi::LogicalSize::new(400, 300).into(),
+                }).unwrap();
+            view
+        });
+
         Self {
             title_bar,
             view: view.into(),
+            webview: webview
         }
     }
 }
 impl Render for MainWindow {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let dialog_layer = Root::render_dialog_layer(window, cx);
+        let sheet_layer = Root::render_sheet_layer(window, cx);
+        let notification_layer = Root::render_notification_layer(window, cx);
+        
         div()
             .size_full()
             .child(
                 v_flex()
                     .size_full()
                     .child(self.title_bar.clone())
-                    .child(div().flex_1().overflow_hidden().child(self.view.clone())),
+                    // .child(div().flex_1().overflow_hidden().child(self.view.clone())),
                     // .child(div().flex_1().overflow_hidden().child("Hello, World!"))
+                    .child(Button::new("go").label("go to baidu").on_click(cx.listener(|this, _, _, cx| {
+                        // let webview = this.webview.clone();
+                        this.webview.update(cx, |webview, _| {
+                            webview.show();
+                            
+                            let html_content = r#"
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Local Content</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .highlight { background-color: yellow; }
+    </style>
+</head>
+<body>
+    <h1>Hello from Local HTML</h1>
+    <p class="highlight">This content is loaded locally!</p>
+    <script>
+        console.log('Local HTML loaded successfully');
+    </script>
+</body>
+</html>
+"#;
+
+webview.load_html(html_content).unwrap();
+                        });
+                    })))
+                    .child(
+                        div()
+                        .flex_1()
+                        .size_full()
+                        // .bg(cx.theme().red)
+                        .child(self.webview.clone())
+                    )
             )
             .children(dialog_layer)
+            .children(sheet_layer)
+            .children(notification_layer)
     }
 }
 
