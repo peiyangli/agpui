@@ -411,8 +411,9 @@ impl Render for MainWindow {
                 v_flex()
                     .size_full()
                     .child(self.title_bar.clone())
-                    // .child(div().flex_1().overflow_hidden().child(self.view.clone())),
+                    .child(div().flex_1().overflow_hidden().child(self.view.clone()))
                     // .child(div().flex_1().overflow_hidden().child("Hello, World!"))
+                    /* //webview
                     .child(Button::new("go").label("go to baidu").on_click(cx.listener(|this, _, _, cx| {
                         // let webview = this.webview.clone();
                         this.webview.update(cx, |webview, _| {
@@ -448,6 +449,7 @@ webview.load_html(html_content).unwrap();
                         // .bg(cx.theme().red)
                         .child(self.webview.clone())
                     )
+                     */
             )
             .children(dialog_layer)
             .children(sheet_layer)
