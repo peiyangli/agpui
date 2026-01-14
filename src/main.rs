@@ -1,13 +1,18 @@
+#![cfg_attr(
+    all(target_os = "windows", not(debug_assertions)),
+    windows_subsystem = "windows"
+)]
+
 use std::{path::Path, rc::Rc, time::Duration};
 
 use agpui::{AppTitleBar, HistoryView};
 use fake::Fake;
 use gpui::{
-    AnyView, App, AppContext, Application, Bounds, Context, Edges, ElementId, Entity, FocusHandle, Focusable, Hsla, ImageSource, InteractiveElement, IntoElement, ParentElement, Pixels, Render, RenderOnce, ScrollStrategy, SharedString, Styled, Subscription, Task, Timer, Window, WindowBounds, WindowKind, WindowOptions, actions, div, prelude::FluentBuilder as _, px, size
+    AnyView, App, AppContext, Application, Bounds, ClickEvent, Context, Edges, ElementId, Entity, FocusHandle, Focusable, Hsla, ImageSource, InteractiveElement, IntoElement, ParentElement, Pixels, Render, RenderOnce, ScrollStrategy, SharedString, Styled, Subscription, Task, Timer, Window, WindowBounds, WindowKind, WindowOptions, actions, div, prelude::FluentBuilder as _, px, size
 };
 
 use gpui_component::{
-    ActiveTheme, Icon, IconName, IndexPath, Root, Selectable, Sizable, StyledExt, TitleBar, WindowExt, accordion::Accordion, alert::Alert, avatar::{Avatar, AvatarGroup}, badge::Badge, button::Button, checkbox::Checkbox, h_flex, label::Label, list::{List, ListDelegate, ListEvent, ListItem, ListState}, resizable::{h_resizable, resizable_panel}, v_flex, webview
+    ActiveTheme, Icon, IconName, IndexPath, Root, Selectable, Sizable, StyledExt, TitleBar, WindowExt, accordion::Accordion, alert::Alert, avatar::{Avatar, AvatarGroup}, badge::Badge, button::Button, checkbox::Checkbox, h_flex, input::{Input, InputEvent, InputState}, label::Label, list::{List, ListDelegate, ListEvent, ListItem, ListState}, resizable::{h_resizable, resizable_panel}, v_flex, webview
 };
 use gpui_component_assets::Assets;
 use gpui_component::webview::WebView;
@@ -362,34 +367,41 @@ impl MainWindow {
         let title_bar = cx.new(|cx| AppTitleBar::new(title, window, cx));
         let view = cx.new(|cx| MainView::new(window, cx));
 
-
         let webview = cx.new(|cx| {
-            let builder = wry::WebViewBuilder::new()
-            .with_url("https://www.baidu.com");
+            let builder = wry::WebViewBuilder::new().with_url("https://www.baidu.com");
+            #[cfg(any(debug_assertions, feature = "inspector"))]
+            let builder = builder.with_devtools(true);
 
-            #[cfg(any(target_os = "windows", target_os = "macos", target_os = "ios", target_os = "android"))]
-            let webview = {
-                use raw_window_handle::HasWindowHandle;
-                use wry::raw_window_handle;
-                let window_handle = window.window_handle().expect("No window handle");
-                builder.build_as_child(&window_handle).unwrap()
-            };
-
-            #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "ios", target_os = "android")))]
+            #[cfg(not(any(
+                target_os = "windows",
+                target_os = "macos",
+                target_os = "ios",
+                target_os = "android"
+            )))]
             let webview = {
                 use gtk::prelude::*;
                 use wry::WebViewBuilderExtUnix;
+                // borrowed from https://github.com/tauri-apps/wry/blob/dev/examples/gtk_multiwebview.rs
+                // doesn't work yet
+                // TODO: How to initialize this fixed?
                 let fixed = gtk::Fixed::builder().build();
                 fixed.show_all();
                 builder.build_gtk(&fixed).unwrap()
             };
+            #[cfg(any(
+                target_os = "windows",
+                target_os = "macos",
+                target_os = "ios",
+                target_os = "android"
+            ))]
+            let webview = {
+                use raw_window_handle::HasWindowHandle;
 
-            let view = WebView::new(webview, window, cx);
-            view.set_bounds(wry::Rect {
-                position: wry::dpi::LogicalPosition::new(0, 0).into(),
-                size: wry::dpi::LogicalSize::new(400, 300).into(),
-                }).unwrap();
-            view
+                let window_handle = window.window_handle().expect("No window handle");
+                builder.build_as_child(&window_handle).unwrap()
+            };
+
+            WebView::new(webview, window, cx)
         });
 
         Self {
@@ -399,27 +411,8 @@ impl MainWindow {
         }
     }
 }
-impl Render for MainWindow {
-    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        let dialog_layer = Root::render_dialog_layer(window, cx);
-        let sheet_layer = Root::render_sheet_layer(window, cx);
-        let notification_layer = Root::render_notification_layer(window, cx);
-        
-        div()
-            .size_full()
-            .child(
-                v_flex()
-                    .size_full()
-                    .child(self.title_bar.clone())
-                    .child(div().flex_1().overflow_hidden().child(self.view.clone()))
-                    // .child(div().flex_1().overflow_hidden().child("Hello, World!"))
-                    /* //webview
-                    .child(Button::new("go").label("go to baidu").on_click(cx.listener(|this, _, _, cx| {
-                        // let webview = this.webview.clone();
-                        this.webview.update(cx, |webview, _| {
-                            webview.show();
-                            
-                            let html_content = r#"
+
+const HTML_CONTENT: &str = r#"
 <!DOCTYPE html>
 <html>
 <head>
@@ -439,17 +432,36 @@ impl Render for MainWindow {
 </html>
 "#;
 
-webview.load_html(html_content).unwrap();
+impl Render for MainWindow {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        let dialog_layer = Root::render_dialog_layer(window, cx);
+        let sheet_layer = Root::render_sheet_layer(window, cx);
+        let notification_layer = Root::render_notification_layer(window, cx);
+        
+        div()
+            .size_full()
+            .child(
+                v_flex()
+                    .size_full()
+                    .child(self.title_bar.clone())
+                    .child(div().flex_1().overflow_hidden().child(self.view.clone()))
+                    // .child(div().flex_1().overflow_hidden().child("Hello, World!"))
+                    //webview
+                    .child(Button::new("go").label("go web").on_click(cx.listener(|this, _, _, cx| {
+                        // let webview = this.webview.clone();
+                        this.webview.update(cx, |view, _| {
+                            view.show();
+                            view.load_html(HTML_CONTENT).unwrap();
                         });
                     })))
                     .child(
                         div()
                         .flex_1()
                         .size_full()
-                        // .bg(cx.theme().red)
+                        .bg(cx.theme().red)
                         .child(self.webview.clone())
                     )
-                     */
+                     
             )
             .children(dialog_layer)
             .children(sheet_layer)
@@ -457,7 +469,16 @@ webview.load_html(html_content).unwrap();
     }
 }
 
+
+
+
 fn main() {
+    // Required this for Windows to render the WebView.
+    #[cfg(target_os = "windows")]
+    unsafe {
+        std::env::set_var("GPUI_DISABLE_DIRECT_COMPOSITION", "true");
+    }
+
     let app = Application::new().with_assets(Assets);
 
     app.run(move |cx| {

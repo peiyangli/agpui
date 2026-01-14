@@ -3,6 +3,12 @@ name = "agpui"
 version = "0.1.0"
 edition = "2024"
 
+[package.metadata.windows] 
+subsystem = "windows"
+
+# [target.x86_64-pc-windows-msvc] 
+# rustflags = ["-C", "link-args=/SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup"]
+
 [dependencies]
 anyhow = "1.0.100"
 gpui = "0.2.2"
@@ -11,4 +17,6 @@ gpui-component = { version = "0.5.0", features = ["webview"] }
 gpui-component-assets = "0.5.0"
 fake = "4.4.0"
 rust-embed = "8.9.0"
-wry = "0.53.5"
+wry = { version = "0.53.3", package = "lb-wry" }
+raw-window-handle = { version = "0.6", features = ["std"] }
+gpui-wry = "0.5.0"

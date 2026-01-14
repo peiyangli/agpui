@@ -29,8 +29,10 @@ dependencies = [
  "gpui",
  "gpui-component",
  "gpui-component-assets",
+ "gpui-wry",
+ "lb-wry",
+ "raw-window-handle",
  "rust-embed",
- "wry",
 ]
 
 [[package]]
@@ -2666,6 +2668,17 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.111",
+]
+
+[[package]]
+name = "gpui-wry"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "69a1691301e23b603797a8be7733fdc30d6bac6f3e0cc98ff1706ea609891866"
+dependencies = [
+ "anyhow",
+ "gpui",
+ "wry",
 ]
 
 [[package]]
