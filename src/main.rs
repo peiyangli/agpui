@@ -221,7 +221,7 @@ impl ListDelegate for ContactsListDelegate {
     //     Option<Element>::None
     // }
 
-    fn render_item(&self, ix: IndexPath, _: &mut Window, _: &mut App) -> Option<Self::Item> {
+    fn render_item(&mut self, ix: IndexPath, _: &mut Window, _: &mut Context<ListState<Self>>,) -> Option<Self::Item> {
         let selected = Some(ix) == self.selected_index;
         if let Some(contact) = self.contacts.get(ix.row) {
             return Some(ContactListItem::new(ix, contact.clone(), ix, selected));

@@ -1,7 +1,7 @@
-use std::{path::Path};
+use std::{path::Path, rc::Rc};
 
 use gpui::{AppContext, Axis, Context, Edges, Entity, ImageSource, InteractiveElement as _, IntoElement, ParentElement as _, Pixels, Render, SharedString, StatefulInteractiveElement, Styled as _, Window, div, img, px};
-use gpui_component::{ActiveTheme as _, Icon, IconName, Sizable, StyledExt as _, accordion::Accordion, button::{Button, ButtonVariants}, h_flex, input::{Input, InputEvent, InputState}, resizable::{resizable_panel, v_resizable}, v_flex};
+use gpui_component::{ActiveTheme as _, Icon, IconName, Sizable, StyledExt as _, VirtualListScrollHandle, accordion::Accordion, button::{Button, ButtonVariants}, h_flex, input::{Input, InputEvent, InputState}, resizable::{resizable_panel, v_resizable}, scroll::ScrollableElement, v_flex};
 use wry::cookie::time::format_description::modifier::Padding;
 
 
@@ -25,8 +25,10 @@ impl History {
 }
 
 pub struct HistoryView {
-    historys: Vec<History>,
-    input: Entity<InputState>
+    historys: Rc<Vec<History>>,
+    input: Entity<InputState>,
+
+    scroll_handle: VirtualListScrollHandle,
 }
 
 impl HistoryView {
@@ -39,7 +41,7 @@ impl HistoryView {
         let input = cx.new(|cx|
             InputState::new(window, cx)
                 .placeholder("Enter your name...")
-                .multi_line()
+                .multi_line(true)
             );
         let _ = cx.subscribe_in(&input, window, |view, state, event, window, cx| {
             match event {
@@ -56,8 +58,9 @@ impl HistoryView {
         });
 
         Self {
-            historys: hs,
+            historys: hs.into(),
             input: input,
+            scroll_handle: VirtualListScrollHandle::new(),
         }
     }
 }
@@ -102,7 +105,7 @@ impl Render for HistoryView {
                                         .paddings(Edges{ top: px(10.), right: px(20.), bottom: px(30.), left: px(40.) })
                                         .border_10()
                                         .border_color(theme.yellow)
-                                        .scrollable(Axis::Vertical)
+                                        .overflow_y_scrollbar()//(&self.scroll_handle, Axis::Vertical)
                                         .children(self.historys.iter().take(100).map(|item| {
                                             if item.hint % 2 == 0{
                                                 div()
